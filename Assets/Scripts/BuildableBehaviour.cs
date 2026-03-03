@@ -22,6 +22,11 @@ public class BuildableBehaviour : MonoBehaviour
         //if (!IsOwner) return;
 
         isValid = obstacles.Count == 0;
+        if (!isValid)
+        {
+            Debug.Log(obstacles[0] +  " count: " + obstacles.Count);
+        }
+
     }
 
 

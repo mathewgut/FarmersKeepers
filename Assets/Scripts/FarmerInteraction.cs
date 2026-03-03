@@ -6,16 +6,29 @@ public class FarmerInteraction : NetworkBehaviour
 {
     
     public GameManagement manager;
-
-
+    [SerializeField] Canvas BuildUI;
+    public NetworkVariable<bool> IsInBuildMode = new NetworkVariable<bool>(false);
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         manager = GameManagement.Instance;
         Debug.Log("manager:", manager);
-    }    
-    
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        // subscribe to changes of inBuildMode
+        if (IsOwner)
+        {
+            IsInBuildMode.OnValueChanged += (oldValue, newValue) => {
+
+                BuildUI.gameObject.SetActive(newValue);
+            };
+        }
+    }
+
+
     // Update is called once per frame
     void Update()
     {
@@ -25,6 +38,9 @@ public class FarmerInteraction : NetworkBehaviour
         {
             ToggleBuildModeServerRpc();
         }
+
+        bool BuildActive = IsInBuildMode.Value && manager.gameState.Value == GameManagement.GAME_STATE.Prepare;
+
     }
 
     [ServerRpc]
@@ -32,9 +48,6 @@ public class FarmerInteraction : NetworkBehaviour
         IsInBuildMode.Value = !IsInBuildMode.Value;
     }
 
-    public NetworkVariable<bool> IsInBuildMode = new NetworkVariable<bool>(false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server);
-
+    
 
 }

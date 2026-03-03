@@ -9,13 +9,22 @@ public class GameManagement : NetworkBehaviour
         Build,
         View,
     }
-
     public enum GAME_STATE
     {
         Prepare,
         Defend,
         Final
     }
+
+    [System.Serializable]
+    public struct TowerInstance
+    {
+        public TowerBehaviour.TOWER_TYPE type;
+        public GameObject prefab;
+    }
+
+    public TowerInstance[] towerPrefabs;
+
 
     public NetworkVariable<int> wave = new NetworkVariable<int>(0);
 
@@ -44,7 +53,7 @@ public class GameManagement : NetworkBehaviour
 
     void Start()
     {
-            
+        
     }
 
     // Update is called once per frame
@@ -57,8 +66,19 @@ public class GameManagement : NetworkBehaviour
             RandomEnemySpawn();
         }
 
+
+
+
     }
 
+    public GameObject GetTower(TowerBehaviour.TOWER_TYPE type)
+    {
+        foreach (TowerInstance tower in towerPrefabs)
+        {
+            if (tower.type == type) return tower.prefab;
+        }
+        return null;
+    }
     void RandomEnemySpawn ()
     {
         int spawnPos = Random.Range(0, enemySpawnPoints.Count);

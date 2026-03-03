@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4898486760163238072}
   - component: {fileID: 1945021383664981657}
   m_Layer: 0
-  m_Name: AreaTower
+  m_Name: (LEGACY)AreaTower
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 2039102150
+  GlobalObjectIdHash: 3962186546
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1

@@ -14,13 +14,17 @@ public class BuildController : NetworkBehaviour
     [SerializeField] Material notBuildableMat;
 
     Vector3 buildPos;
-    const float CELL_SIZE = 1; 
+    const float CELL_SIZE = 1;
+    public bool stopMouseTracking = false;
+    public bool objHasSwitched = false;
 
     // what the user sees when they go to build/place an object
     public GameObject buildObject;
 
     // defines what makes an object buildable or not buildable
     BuildableBehaviour buildable;
+
+    public TowerBehaviour.TOWER_TYPE currentTowerType;
 
     void Start()
     {
@@ -48,6 +52,8 @@ public class BuildController : NetworkBehaviour
         // if build mode is active on "farmer"
         if (farmer.IsInBuildMode.Value)
         {
+            if (!buildable || !buildObject) SpawnBuildObj();
+            if (stopMouseTracking) return;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
@@ -62,6 +68,14 @@ public class BuildController : NetworkBehaviour
                 buildObject.transform.position = buildPos;
 
                 MeshRenderer[] childrenMeshes = buildObject.GetComponentsInChildren<MeshRenderer>();
+
+                if (objHasSwitched)
+                {
+                    if (!buildable || !buildObject) SpawnBuildObj();
+                    buildable.isValid = true;
+                    objHasSwitched = false;
+                    return;
+                }
 
                 Material targetMat = buildable.isValid ? buildableMat : notBuildableMat;
 
@@ -81,6 +95,25 @@ public class BuildController : NetworkBehaviour
             buildObject.SetActive(false);
         }
 
+    }
+
+    public void UpdateBuildObject (GameObject newObject)
+    {
+        currentTowerType = newObject.GetComponent<TowerBehaviour>().towerType;
+
+        Destroy(buildObject);
+        previewObj = newObject;
+        buildObject = Instantiate(previewObj);
+        buildable = buildObject.AddComponent<BuildableBehaviour>();
+        objHasSwitched = true;
+    }
+
+    void SpawnBuildObj()
+    {
+        if (buildObject) Destroy(buildObject);
+
+        buildObject = Instantiate(previewObj);
+        buildable = buildObject.AddComponent<BuildableBehaviour>();
     }
 
 }

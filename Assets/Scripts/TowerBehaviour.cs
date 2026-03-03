@@ -1,10 +1,19 @@
 using Unity.Netcode;
 using UnityEngine;
+using static GameManagement;
 
 
 public class TowerBehaviour : NetworkBehaviour
 {
-    
+
+    public enum TOWER_TYPE
+    {
+        Project,
+        Area,
+    }
+
+    public TOWER_TYPE towerType = TOWER_TYPE.Project;
+
     [SerializeField] TowerProximity proximity;
 
     public GameObject toShootAt;
