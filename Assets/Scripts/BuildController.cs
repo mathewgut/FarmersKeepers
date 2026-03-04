@@ -42,6 +42,8 @@ public class BuildController : NetworkBehaviour
 
         if (farmer == null) return;
 
+        if (!buildObject) buildObject = Instantiate(previewObj);
+
         if (!IsOwner)
         {
             buildObject.SetActive(false); 
@@ -52,7 +54,14 @@ public class BuildController : NetworkBehaviour
         // if build mode is active on "farmer"
         if (farmer.IsInBuildMode.Value)
         {
-            if (!buildable || !buildObject) SpawnBuildObj();
+            if (objHasSwitched)
+            {
+                buildable.isValid = true;
+                objHasSwitched = false;
+                return;
+            }
+
+            
             if (stopMouseTracking) return;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -62,20 +71,13 @@ public class BuildController : NetworkBehaviour
             // if hit anything (cant place on not ground)
             if (Physics.Raycast(ray, out hit, Mathf.Infinity))
             {
+                if (!buildable || !buildObject) SpawnBuildObj();
                 buildPos = new Vector3(hit.point.x, 1f, hit.point.z);
                 buildPos = buildPos - new Vector3(buildPos.x % CELL_SIZE, buildPos.y, buildPos.z % CELL_SIZE);
 
                 buildObject.transform.position = buildPos;
 
                 MeshRenderer[] childrenMeshes = buildObject.GetComponentsInChildren<MeshRenderer>();
-
-                if (objHasSwitched)
-                {
-                    if (!buildable || !buildObject) SpawnBuildObj();
-                    buildable.isValid = true;
-                    objHasSwitched = false;
-                    return;
-                }
 
                 Material targetMat = buildable.isValid ? buildableMat : notBuildableMat;
 

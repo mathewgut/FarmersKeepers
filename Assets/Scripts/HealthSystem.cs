@@ -20,7 +20,11 @@ public class HealthSystem : NetworkBehaviour
 
     void DeleteSelf()
     {
-        GetComponent<NetworkObject>().Despawn();
-    }
+        // prevents attempted despawns on objects that have already been despawned
+        if (IsServer && NetworkObject != null && NetworkObject.IsSpawned)
+        {
+            GetComponent<NetworkObject>().Despawn();
 
+        }
+    }
 }

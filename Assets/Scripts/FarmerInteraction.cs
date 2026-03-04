@@ -33,6 +33,7 @@ public class FarmerInteraction : NetworkBehaviour
     void Update()
     {
         if (!IsOwner) return;
+        if(manager == null) manager = GameManagement.Instance;
 
         if (Input.GetKeyDown(KeyCode.B))
         {

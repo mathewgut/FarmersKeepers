@@ -26,10 +26,12 @@ public class GameManagement : NetworkBehaviour
     public TowerInstance[] towerPrefabs;
 
 
+    // synced states across clients
     public NetworkVariable<int> wave = new NetworkVariable<int>(0);
-
-    public NetworkVariable<FARMER_STATE> farmerState = new NetworkVariable<FARMER_STATE>(FARMER_STATE.View);
+    public NetworkVariable<FARMER_STATE> farmerState = new NetworkVariable<FARMER_STATE>(FARMER_STATE.View); // farmer state just means player state, too much refactoring to fix sry
     public NetworkVariable<GAME_STATE> gameState = new NetworkVariable<GAME_STATE>(GAME_STATE.Prepare);
+    public NetworkVariable<bool> prepareStarted = new NetworkVariable<bool>(false);
+    public NetworkVariable<float> prepareTimer = new NetworkVariable<float>(0f);
 
     public static GameManagement Instance { get; private set; }
 
@@ -61,13 +63,19 @@ public class GameManagement : NetworkBehaviour
     {
         if (!IsServer) return;
 
+        // this assumes only a host and client will ever be connected at once, bad for prod, great for this assignment
+        if (NetworkManager.Singleton.ConnectedClients.Count >= 2)
+        {
+            prepareStarted.Value = true;
+        }
+
+        if (gameState.Value == GAME_STATE.Prepare) return;
+
+
         if(spawnedEnemies.Count < 10 * wave.Value)
         {
             RandomEnemySpawn();
         }
-
-
-
 
     }
 

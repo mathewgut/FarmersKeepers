@@ -26,14 +26,18 @@ public class SpawnBuild : NetworkBehaviour
         // for the server to instantiate objects
         if (buildController != null)
         {
-            buildObject = buildController.buildObject;
-            buildPrefab = buildController.previewObj;
+            if(buildController.buildObject != null && buildController.previewObj != null)
+            {
+                buildObject = buildController.buildObject;
+                buildPrefab = buildController.previewObj;
+            }
+           
         }
 
         if (!IsOwner) return;
 
         buildable = buildObject.transform.GetComponent<BuildableBehaviour>();
-       
+
 
         if (Input.GetMouseButtonDown(0))
         {

@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 public class UIBehaviour : NetworkBehaviour
 {
     [SerializeField] BuildController build;
+
  
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -21,6 +22,7 @@ public class UIBehaviour : NetworkBehaviour
 
     public void ChangeObjectSelection(GameObject prefab)
     {
+        build.objHasSwitched = true;
         build.UpdateBuildObject(prefab);
     }
 
