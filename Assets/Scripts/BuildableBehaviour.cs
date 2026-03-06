@@ -5,7 +5,7 @@ using Unity.Netcode;
 
 public class BuildableBehaviour : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    // this script basically dictates what makes an object placeable
 
     public bool isValid = true;
 
@@ -19,17 +19,12 @@ public class BuildableBehaviour : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (!IsOwner) return;
-
+        // if no obstacles, is valid;
         isValid = obstacles.Count == 0;
-        if (!isValid)
-        {
-            Debug.Log(obstacles[0] +  " count: " + obstacles.Count);
-        }
 
     }
 
-
+    // if a to be placed object is colliding with another object, add to obstacles list
     private void OnTriggerEnter(Collider other)
     {
         if (obstacles == null) obstacles = new List<GameObject>();
@@ -39,11 +34,9 @@ public class BuildableBehaviour : MonoBehaviour
         {
             obstacles.Add(other.gameObject);
         }
-
-
-        Debug.Log(isValid);
     }
 
+    // if an object leaves the bounds of the to be placed object, remove from obstacles
     private void OnTriggerExit(Collider other)
     {
         if (obstacles == null) return;

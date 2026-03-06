@@ -7,6 +7,8 @@ public class SpawnBuild : NetworkBehaviour
     GameObject buildPrefab;
 
     BuildableBehaviour buildable;
+    [SerializeField] FarmerInteraction farmer;
+    GameManagement manager;
 
     BuildController buildController;
 
@@ -18,6 +20,7 @@ public class SpawnBuild : NetworkBehaviour
         //buildable = buildObject.transform.GetComponent<BuildableBehaviour>();
 
         buildController = transform.GetComponent<BuildController>();
+        manager = GameManagement.Instance;
     }
 
     // Update is called once per frame
@@ -39,29 +42,34 @@ public class SpawnBuild : NetworkBehaviour
         buildable = buildObject.transform.GetComponent<BuildableBehaviour>();
 
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && farmer.IsInBuildMode.Value)
         {
             if (buildable.isValid && !buildController.objHasSwitched)
             {
-                Debug.Log("VALID");
-                RequestSpawnTowerServerRpc(buildController.currentTowerType,buildable.transform.position, buildable.transform.rotation);
+                Debug.Log("here!!!");
+                RequestSpawnTowerServerRpc(buildController.currentTowerType, buildable.transform.position, buildObject.transform.rotation);
+                
             }
         }
 
     }
 
+    // build selected item and update built items
     [ServerRpc]
     private void RequestSpawnTowerServerRpc(TowerBehaviour.TOWER_TYPE type, Vector3 pos, Quaternion rot)
     {
         GameObject toSpawn = GameManagement.Instance.GetTower(type);
         if (toSpawn)
         {
+            Debug.Log("tospawn");
+            GameManagement.Instance.builtItems.Value += 1;
             GameObject newTower = Instantiate(toSpawn, pos, rot);
             newTower.GetComponent<NetworkObject>().Spawn();
         }
 
         
     }
+
 
 
 }

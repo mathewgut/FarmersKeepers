@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using static GameManagement;
 
@@ -10,6 +12,7 @@ public class TowerBehaviour : NetworkBehaviour
     {
         Project,
         Area,
+        Obstacle
     }
 
     public TOWER_TYPE towerType = TOWER_TYPE.Project;
@@ -19,8 +22,10 @@ public class TowerBehaviour : NetworkBehaviour
     [SerializeField] Material invisibleProxMat;
     Material originalProxMat;
 
+    [SerializeField] float cooldown = 1.5f;
+    [SerializeField] int targetCount = 1; // if -1, will shoot all targets within proximity range
 
-    public GameObject toShootAt;
+    float prevTime = -1;
     public GameObject projectile;
     GameObject shot = null;
     public bool shotFired = false;
@@ -30,7 +35,7 @@ public class TowerBehaviour : NetworkBehaviour
     Vector3 projectileStartPosition;
     bool isBuildMode;
 
-    public float shootAtDistance = 10f; 
+    public float shootAtDistance = 10f;
     
     void Start()
     {
@@ -46,10 +51,9 @@ public class TowerBehaviour : NetworkBehaviour
         
         if(IsClient)
         {
-            Debug.Log("working!");
             isBuildMode = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<FarmerInteraction>().IsInBuildMode.Value;
 
-            // show range while in build mode
+            // changes material of range overlay depending on build mode
             if (!isBuildMode)
             {
                 proximityMesh.material = invisibleProxMat;
@@ -64,40 +68,41 @@ public class TowerBehaviour : NetworkBehaviour
 
         if (!IsServer) return;
 
-
-        if (!proximity.hasTarget) {
-
-            toShootAt = null;
+        // if tower has no targets, do nothing
+        if (proximity.targetsInRange.Count == 0) {
             return;
-        };
-
-
-        if(proximity.hasTarget && proximity.targetObject)
-        {
-            toShootAt = proximity.targetObject;
-
-            
-            if (!shotFired)
-            {
-                shot = Instantiate(projectile, projectilePosition, Quaternion.identity);
-                shot.GetComponent<NetworkObject>().Spawn();
-                shot.GetComponent<ProjectileBehaviour>().target = toShootAt;
-                shotFired = true;
-            }
-
-            if (!shot) {
-
-                shotFired = false;
-                return;
-            }
-
         }
+
+        // if at least one target
         else
         {
-            toShootAt = null;
+            
+            // if cooldown not passed and timer has been started
+            if (Time.time - prevTime < cooldown && prevTime != -1) return;
+
+            if (targetCount == 1)
+            {
+                Shoot(proximity.GetTarget());
+            }
+            else
+            {
+                List<GameObject> selectedTargets = proximity.GetMultipleTargets(targetCount);
+
+                foreach (GameObject target in selectedTargets)
+                {
+                    Shoot(target);
+                }
+            }
+            
+            prevTime = Time.time;
         }
-
-
-       
     }
+
+    void Shoot(GameObject target)
+    {
+        shot = Instantiate(projectile, projectilePosition, Quaternion.identity);
+        shot.GetComponent<NetworkObject>().Spawn();
+        shot.GetComponent<ProjectileBehaviour>().target = target;
+    }
+
 }

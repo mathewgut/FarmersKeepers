@@ -7,6 +7,7 @@ public class EnemyAI : NetworkBehaviour
     GameObject target;
     private NavMeshAgent agent;
     bool hasTarget = false;
+    [SerializeField] HealthSystem health;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -17,19 +18,24 @@ public class EnemyAI : NetworkBehaviour
 
     // Update is called once per frame
     void Update()
-    { 
+    {
+        
         if (!hasTarget)
         {
             agent.SetDestination(target.transform.position);
             hasTarget = true;
         }
-    }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        Debug.Log("Tcollision");
-        if (!other.gameObject.CompareTag("Pen")) return;
-        GetComponent<NetworkObject>().Despawn(true);
-    }
+        if (!agent.pathPending && hasTarget)
+        {
+            // if ai has target but can't get to it (user has blocked all possible routes), off self
+            if (agent.pathStatus == NavMeshPathStatus.PathPartial)
+            {
+                health.DeleteSelf();
+            }
+        }
 
+        // destroy if within close range of goal (avoids weird ai stacking issues)
+        if (Vector3.Distance(transform.position, target.transform.position) < 2f) GetComponent<NetworkObject>().Despawn(true);
+    }
 }

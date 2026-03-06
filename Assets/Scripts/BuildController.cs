@@ -81,6 +81,25 @@ public class BuildController : NetworkBehaviour
 
                 Material targetMat = buildable.isValid ? buildableMat : notBuildableMat;
 
+                // rotate object left 45deg if press q
+                if (Input.GetKeyDown(KeyCode.Q) && farmer.IsInBuildMode.Value)
+                {
+                    buildObject.transform.rotation = Quaternion.Euler(
+                        buildObject.transform.rotation.eulerAngles.x,
+                        buildObject.transform.rotation.eulerAngles.y - 45,
+                        buildObject.transform.rotation.eulerAngles.z
+                    );
+                }
+                // rotate object right 45deg if press q
+                else if (Input.GetKeyDown(KeyCode.E) && farmer.IsInBuildMode.Value)
+                {
+                    buildObject.transform.rotation = Quaternion.Euler(
+                        buildObject.transform.rotation.eulerAngles.x,
+                        buildObject.transform.rotation.eulerAngles.y + 45,
+                        buildObject.transform.rotation.eulerAngles.z
+                    );
+                }
+
                 foreach (MeshRenderer mesh in childrenMeshes)
                 {
                     mesh.material = targetMat;
@@ -99,10 +118,18 @@ public class BuildController : NetworkBehaviour
 
     }
 
+    // change ghost to new selection
     public void UpdateBuildObject (GameObject newObject)
     {
-        currentTowerType = newObject.GetComponent<TowerBehaviour>().towerType;
-
+        // patch work fix bahaha i did not build this system with obstacles in mind oops
+        if (newObject.TryGetComponent<TowerBehaviour>(out TowerBehaviour tower))
+        {
+            currentTowerType = tower.towerType;
+        }
+        else 
+        {
+            currentTowerType = newObject.GetComponent<ObstacleInfo>().type;
+        }
         Destroy(buildObject);
         previewObj = newObject;
         buildObject = Instantiate(previewObj);
@@ -110,11 +137,12 @@ public class BuildController : NetworkBehaviour
         objHasSwitched = true;
     }
 
+    // spawn build ghost
     void SpawnBuildObj()
     {
         if (buildObject) Destroy(buildObject);
-
         buildObject = Instantiate(previewObj);
+
         buildable = buildObject.AddComponent<BuildableBehaviour>();
     }
 

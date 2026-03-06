@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -8,59 +9,59 @@ public class TowerProximity : MonoBehaviour
     [SerializeField] string targetTag;
     public bool hasTarget = false;
     public GameObject targetObject;
-    private MeshRenderer rangeMesh;
-    bool isBuildMode;
+    public List<GameObject> targetsInRange = new List<GameObject>();
+
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        rangeMesh = transform.GetComponent<MeshRenderer>();
+   
     }
 
     // Update is called once per frame
     void Update()
     {
-        Debug.Log("working!");
-        isBuildMode = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<FarmerInteraction>().IsInBuildMode.Value;
+       
 
-        // show range while in build mode
-        /*
-        if (!isBuildMode)
-        {
-            rangeMesh.gameObject.SetActive(false);
-        }
-        else
-        {
-            rangeMesh.gameObject.SetActive(true);
-        }
-    */
-
-        // if object explodes while area
-        if (!targetObject && hasTarget)
-        {
-            targetObject = null;
-        }
     }
+
+    public GameObject GetTarget()
+    {
+        // remove all instances where obj no longer exists
+        targetsInRange.RemoveAll(obj => obj == null);
+
+        if (targetsInRange.Count > 0)
+        {
+            return targetsInRange[0];
+        }
+
+        return null;
+    }
+
+    // -1 will return all items 
+    public List<GameObject> GetMultipleTargets(int count)
+    {
+        // remove all instances where obj no longer exists
+        targetsInRange.RemoveAll(obj => obj == null);
+
+        if (count == -1 || count >= targetsInRange.Count)
+        {
+            return new List<GameObject>(targetsInRange);
+        }
+        
+        // essentially acts like a splice in JS
+        return targetsInRange.GetRange(0, count);
+    }
+
 
     private void OnTriggerEnter(Collider other)
     {
-        if(other.CompareTag(targetTag) && !targetObject)
+        if (other.CompareTag(targetTag))
         {
-            hasTarget = true;
-            targetObject = other.gameObject;
-        }
-    }
-
-    // if enemy is killed and another is still in range
-    private void OnTriggerStay(Collider other)
-    {
-        if(!targetObject && !hasTarget)
-        {
-            if (other.CompareTag(targetTag))
+            if (!targetsInRange.Contains(other.gameObject))
             {
-                hasTarget = true;
-                targetObject = other.gameObject;
+                targetsInRange.Add(other.gameObject);
             }
         }
     }
@@ -69,8 +70,7 @@ public class TowerProximity : MonoBehaviour
     {
         if (other.CompareTag(targetTag))
         {
-            hasTarget = false;
-            targetObject = null;
+            targetsInRange.Remove(other.gameObject);
         }
     }
 
