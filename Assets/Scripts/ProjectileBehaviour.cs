@@ -32,7 +32,7 @@ public class ProjectileBehaviour : NetworkBehaviour
 
         if(target == null)
         {
-            Destroy(gameObject);
+            GetComponent<NetworkObject>().Despawn();
         }
     }
 
@@ -46,7 +46,12 @@ public class ProjectileBehaviour : NetworkBehaviour
                 health.effect = projType;
                 health.TakeDamage(damage);
             }
-            Destroy(gameObject);
+
+            if (IsServer && NetworkObject != null && NetworkObject.IsSpawned)
+            {
+                GetComponent<NetworkObject>().Despawn();
+            }
+            
         }
             
            

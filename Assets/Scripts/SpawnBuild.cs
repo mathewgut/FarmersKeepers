@@ -41,12 +41,16 @@ public class SpawnBuild : NetworkBehaviour
 
         buildable = buildObject.transform.GetComponent<BuildableBehaviour>();
 
+        // dont allow enemy to spawn too close to pen, or else its just a free win lol
+        if (farmer.isEnemy && Vector3.Distance(buildable.transform.position, GameObject.FindWithTag("Pen").transform.position) < 22.5f) buildable.isValid = false;
 
         if (Input.GetMouseButtonDown(0) && farmer.IsInBuildMode.Value)
         {
+            // if in versus mode and enemy trying to spawn
+            if (farmer.isEnemy && GameManagement.Instance.gameState.Value != GameManagement.GAME_STATE.Defend) return;
+            if (farmer.isEnemy && GameManagement.Instance.hasAllSpawned.Value == true) return;
             if (buildable.isValid && !buildController.objHasSwitched)
             {
-                Debug.Log("here!!!");
                 RequestSpawnTowerServerRpc(buildController.currentTowerType, buildable.transform.position, buildObject.transform.rotation);
                 
             }
@@ -61,11 +65,14 @@ public class SpawnBuild : NetworkBehaviour
         GameObject toSpawn = GameManagement.Instance.GetTower(type);
         if (toSpawn)
         {
-            Debug.Log("tospawn");
-            GameManagement.Instance.builtItems.Value += 1;
+            // only increment if not in versus mode and spawning enemy
+            if(type != TowerBehaviour.TOWER_TYPE.Enemy) GameManagement.Instance.builtItems.Value += 1;
             GameObject newTower = Instantiate(toSpawn, pos, rot);
+
+            // add to spawned enemies list if spawning an enemy (allows manage wave to stay in sync)
+            if(type == TowerBehaviour.TOWER_TYPE.Enemy) GameManagement.Instance.spawnedEnemies.Add(newTower);
             newTower.GetComponent<NetworkObject>().Spawn();
-        }
+        }   
 
         
     }

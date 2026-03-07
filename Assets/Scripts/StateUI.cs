@@ -20,7 +20,6 @@ public class StateUI : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!IsOwner) return;
 
         builtText.text = manager.builtItems.Value.ToString() + "/" + manager.maxBuiltItems.Value.ToString();
         waveText.text = manager.wave.Value.ToString();
@@ -47,6 +46,20 @@ public class StateUI : NetworkBehaviour
             timerText.gameObject.SetActive(false);
             gameStateText.text = "Protect your animals!";
         }
+        else if(manager.gameState.Value == GameManagement.GAME_STATE.Lost)
+        {
+            if(manager.gameType == GameManagement.GAME_TYPE.Versus && IsClient && !IsHost)
+            {
+                gameStateText.text = "You won! :)";
+            }
+            else
+            {
+                gameStateText.text = "You lost. :(";
+            }
+
+                timerText.gameObject.SetActive(false);
+        }
+
         else
         {
             timerText.gameObject.SetActive(false);

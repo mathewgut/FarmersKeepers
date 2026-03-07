@@ -6,7 +6,9 @@ public class FarmerInteraction : NetworkBehaviour
 {
     
     public GameManagement manager;
+    public bool isEnemy = false;
     [SerializeField] Canvas BuildUI;
+    [SerializeField] Canvas VersusUI; // for the versus mode, client is in charge of spawning enemies
     [SerializeField] GameObject playerCamera;
     public NetworkVariable<bool> IsInBuildMode = new NetworkVariable<bool>(false);
     [SerializeField] private AudioListener audioListener;
@@ -15,8 +17,15 @@ public class FarmerInteraction : NetworkBehaviour
     {
        
         if (IsOwner)
+        {
+            // if in versus mode and user is client (i got one hour to finish, sorry brodie you perma enemy)
+            if (!IsHost && IsClient && GameManagement.Instance.gameType == GameManagement.GAME_TYPE.Versus)
+            {
+                BuildUI = VersusUI;
+                isEnemy = true;
+            }
 
-        {   // subscribe to changes of inBuildMode
+            // subscribe to changes of inBuildMode
             IsInBuildMode.OnValueChanged += (oldValue, newValue) => {
 
                 BuildUI.gameObject.SetActive(newValue);
@@ -39,9 +48,6 @@ public class FarmerInteraction : NetworkBehaviour
     void Start()
     {
         manager = GameManagement.Instance;
-        Debug.Log("manager:", manager);
-
-        //transform.parent.transform.position = new Vector3(0, 25, 0);
     }
 
     // Update is called once per frame
@@ -54,9 +60,6 @@ public class FarmerInteraction : NetworkBehaviour
         {
             ToggleBuildModeServerRpc();
         }
-
-        //bool BuildActive = IsInBuildMode.Value && manager.gameState.Value == GameManagement.GAME_STATE.Prepare;
-
         
     }
 

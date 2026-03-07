@@ -115,11 +115,11 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 2.5, y: 5, z: 2.5}
-  m_MoveThreshold: 2
+  m_Extents: {x: 3.5, y: 2.5, z: 1}
+  m_MoveThreshold: 1
   m_Carve: 1
   m_CarveOnlyStationary: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: -1.5, y: 2.3, z: -0.5}
   m_TimeToStationary: 0.1
 --- !u!114 &69457842288440628
 MonoBehaviour:
@@ -133,8 +133,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 2916128137
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 770090698
+  InScenePlacedSourceGlobalObjectIdHash: 2916128137
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0

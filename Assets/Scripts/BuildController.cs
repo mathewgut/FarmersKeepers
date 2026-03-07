@@ -72,13 +72,15 @@ public class BuildController : NetworkBehaviour
             if (Physics.Raycast(ray, out hit, Mathf.Infinity))
             {
                 if (!buildable || !buildObject) SpawnBuildObj();
-                buildPos = new Vector3(hit.point.x, 1f, hit.point.z);
-                buildPos = buildPos - new Vector3(buildPos.x % CELL_SIZE, buildPos.y, buildPos.z % CELL_SIZE);
+                buildPos = new Vector3(Mathf.Round(hit.point.x / CELL_SIZE) * CELL_SIZE, 0, Mathf.Round(hit.point.z / CELL_SIZE) * CELL_SIZE); // ty caelan
+                
+                //buildPos = buildPos - new Vector3(buildPos.x % CELL_SIZE, buildPos.y, buildPos.z % CELL_SIZE);
 
                 buildObject.transform.position = buildPos;
 
                 MeshRenderer[] childrenMeshes = buildObject.GetComponentsInChildren<MeshRenderer>();
 
+                if (farmer.isEnemy && Vector3.Distance(buildable.transform.position, GameObject.FindWithTag("Pen").transform.position) < 22.5f) buildable.isValid = false;
                 Material targetMat = buildable.isValid ? buildableMat : notBuildableMat;
 
                 // rotate object left 45deg if press q
@@ -121,15 +123,20 @@ public class BuildController : NetworkBehaviour
     // change ghost to new selection
     public void UpdateBuildObject (GameObject newObject)
     {
-        // patch work fix bahaha i did not build this system with obstacles in mind oops
+        // patch work fix bahaha i did not build this system with anything but towers in mind lmao
         if (newObject.TryGetComponent<TowerBehaviour>(out TowerBehaviour tower))
         {
             currentTowerType = tower.towerType;
         }
-        else 
+        else if(newObject.TryGetComponent<ObstacleInfo>(out ObstacleInfo obstacle))
         {
-            currentTowerType = newObject.GetComponent<ObstacleInfo>().type;
+            currentTowerType = obstacle.type;
         }
+        else if(newObject.TryGetComponent<EnemyAI>(out EnemyAI enemy))
+        {
+            currentTowerType = enemy.towerType;
+        }
+
         Destroy(buildObject);
         previewObj = newObject;
         buildObject = Instantiate(previewObj);

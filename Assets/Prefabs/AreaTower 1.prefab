@@ -115,7 +115,7 @@ MonoBehaviour:
   towerType: 1
   proximity: {fileID: 7664141870289114843}
   invisibleProxMat: {fileID: 2100000, guid: e6cec4ecb34097842b72bc6e858c7d00, type: 2}
-  cooldown: 2
+  cooldown: 3.5
   targetCount: -1
   projectile: {fileID: 2374092081998864316, guid: 3b647a3593844f643bf9c4f3c31bff26, type: 3}
   shotFired: 0

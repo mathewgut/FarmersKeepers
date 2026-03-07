@@ -12,7 +12,8 @@ public class TowerBehaviour : NetworkBehaviour
     {
         Project,
         Area,
-        Obstacle
+        Obstacle,
+        Enemy
     }
 
     public TOWER_TYPE towerType = TOWER_TYPE.Project;

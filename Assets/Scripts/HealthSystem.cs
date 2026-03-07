@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections.Generic;
 
 public class HealthSystem : NetworkBehaviour
 {
@@ -8,14 +9,12 @@ public class HealthSystem : NetworkBehaviour
 
     public ProjectileBehaviour.PROJECTILE_TYPE effect = default;
 
+  
     float prevTime;
-    float particleTime;
 
     [SerializeField] NavMeshAgent agent;
     [SerializeField] Canvas healthCanvas;
     [SerializeField] TMPro.TextMeshProUGUI healthText;
-    [SerializeField] AudioSource soundEmitter;
-    [SerializeField] ParticleSystem particles;
     
     float agentSpeed;
 
@@ -27,23 +26,21 @@ public class HealthSystem : NetworkBehaviour
     // how long ice slow effect to last
     [SerializeField] float iceEffectTime = 7;
 
-    // when despawn is called, remove reference from game spawnedEnemies list
+    // when despawn is called by server, remove reference from game spawnedEnemies list
     public override void OnNetworkDespawn()
-    {
-        if (GameManagement.Instance != null)
-        {
-            GameManagement.Instance.DeleteEnemy(NetworkObjectId);
-        }
-        base.OnNetworkDespawn();
+    { 
+        GameManagement.Instance.DeleteEnemy(NetworkObjectId);
+        
+        // call rest of base functionality
+        base.OnNetworkDespawn(); 
     }
 
     private void Start()
     {
         agentSpeed = agent.speed;
         prevTime = -1;
-        particleTime = -1;
-        particles.Stop();
-        
+
+        if (GameManagement.Instance.wave.Value > 1 && IsServer) CurrentHealth.Value += 5;
     }
 
 
@@ -51,14 +48,21 @@ public class HealthSystem : NetworkBehaviour
     {
         // sync health text if camera exists
         healthText.text = CurrentHealth.Value.ToString();
-        if (Camera.main) healthCanvas.transform.LookAt(Camera.main.transform.position);
+        if (Camera.main) {
+            healthCanvas.transform.LookAt(Camera.main.transform.position);
+            healthCanvas.transform.rotation =  Quaternion.Euler(
+                healthCanvas.transform.rotation.eulerAngles.x,
+                healthCanvas.transform.rotation.eulerAngles.y -180,
+                healthCanvas.transform.rotation.eulerAngles.z
+            );
+        };
 
         switch (effect)
         {
             // default projectile behaviour
             case ProjectileBehaviour.PROJECTILE_TYPE.Default:
                 break;
-            // 
+
             case ProjectileBehaviour.PROJECTILE_TYPE.Fire:
                 if(fireEffectCount > 0)
                 {
@@ -105,22 +109,31 @@ public class HealthSystem : NetworkBehaviour
 
         if (CurrentHealth.Value <= 0)
         {
-            PlayParticlesClientRpc();
+            GameManagement.Instance.PlayParticlesClientRpc(new Vector3(
+                agent.transform.position.x,
+                agent.transform.position.y + 3, // offset because pivot is on the floor for enemy
+                agent.transform.position.z
+                ));
             DeleteSelf();
         }
     }
 
     public void DeleteSelf()
     {
+        // when called that means any entity is attempting to delete, bc dead, so, nuke timer
+        prevTime = -1;
+        
+ 
         // prevents attempted despawns on objects that have already been despawned
-        if (IsServer && NetworkObject != null && NetworkObject.IsSpawned) GetComponent<NetworkObject>().Despawn();
+        if (IsServer && NetworkObject != null && NetworkObject.IsSpawned) {
+
+            // kept getting memory allocation errors, this frees up all threads so no weird crashes
+            agent.isStopped = true;
+            agent.enabled = false;
+
+            GetComponent<NetworkObject>().Despawn();
+        }
     }
 
-    // the forced rpc suffix is stupid and makes no sense, why do that when i also have to tag it?? 
-    [ClientRpc]
-    private void PlayParticlesClientRpc()
-    {
-        // play explosion particles everywhere
-        Instantiate(particles, transform.position, Quaternion.identity);
-    }
+    
 }

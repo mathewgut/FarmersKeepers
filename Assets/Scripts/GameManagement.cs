@@ -3,9 +3,12 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
+using static UnityEngine.ParticleSystem;
+using UnityEngine.UIElements;
 
 public class GameManagement : NetworkBehaviour
 {
+    public static GameManagement Instance { get; private set; }
     public enum FARMER_STATE
     {
         Build,
@@ -16,7 +19,12 @@ public class GameManagement : NetworkBehaviour
         Waiting,
         Prepare,
         Defend,
-        Final
+        Lost
+    }
+
+    public enum GAME_TYPE { 
+        Coop,
+        Versus
     }
 
     [System.Serializable]
@@ -26,7 +34,12 @@ public class GameManagement : NetworkBehaviour
         public GameObject prefab;
     }
 
+    public GAME_TYPE gameType = GAME_TYPE.Coop;
     public TowerInstance[] towerPrefabs;
+    public List<AudioClip> ExplodeAudios = new List<AudioClip>();
+    public List<AudioClip> AnticipateAudios = new List<AudioClip>();
+    public List<AudioClip> AnimalAudios = new List<AudioClip>();
+    [SerializeField] AudioClip explosionSound;
 
 
     // synced states across clients
@@ -36,22 +49,22 @@ public class GameManagement : NetworkBehaviour
     public NetworkVariable<bool> prepareStarted = new NetworkVariable<bool>(false);
     public NetworkVariable<int> builtItems = new NetworkVariable<int>(0);
     public NetworkVariable<int> maxBuiltItems = new NetworkVariable<int>(4);
-
+    public NetworkVariable<int> toSpawnCount = new NetworkVariable<int>(0);
+    public NetworkVariable<bool> hasAllSpawned = new NetworkVariable<bool>(false);
     int allSpawnedCount = 0;
-    bool waveStarted = false;
+   
 
-    float defaultPrepareTimer = 45;
+    float defaultPrepareTimer = 30;
     float prevTime = 0;
     public NetworkVariable<float> prepareTimer = new NetworkVariable<float>(-1f);
 
     bool clientsConnected = false;
 
-    public static GameManagement Instance { get; private set; }
-
+    [SerializeField] ParticleSystem particles;
     [SerializeField] GameObject EnemyPrefab;
     [SerializeField] List<GameObject> enemySpawnPoints = new List<GameObject>();
-
-    List<GameObject> spawnedEnemies = new List<GameObject>();
+    
+    public List<GameObject> spawnedEnemies = new List<GameObject>();
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
 
@@ -68,12 +81,6 @@ public class GameManagement : NetworkBehaviour
 
     void Start()
     {
-        // for some godforesaken reason, unity keeps defaulting this to wave 2 and 6 max, so we doing this nows
-        if (IsServer)
-        {
-            wave.Value = 1;
-            maxBuiltItems.Value = 4;
-        }
     }
 
     // Update is called once per frame
@@ -81,9 +88,18 @@ public class GameManagement : NetworkBehaviour
     {
         if (!IsServer) return;
 
-        if(wave.Value > 1 && defaultPrepareTimer != 30)
+        if (gameType == GAME_TYPE.Versus) toSpawnCount.Value = 10 * wave.Value;
+
+        if(gameState.Value == GAME_STATE.Lost)
         {
-            defaultPrepareTimer = 30;
+            Time.timeScale = 0; // stop gametime if lost
+            return;
+        }
+
+        // after initial setup, every round should be quicker (less items to spawn, less time needed)
+        if(wave.Value > 1 && defaultPrepareTimer != 15)
+        {
+            defaultPrepareTimer = 15;
         }
 
         // this assumes only a host and client will ever be connected at the same time, bad for prod, great for this assignment
@@ -102,32 +118,56 @@ public class GameManagement : NetworkBehaviour
         {
             UpdateTimer();
         }
-        
 
-        if(gameState.Value == GAME_STATE.Defend && allSpawnedCount < 10 * wave.Value)
+
+        if (gameType == GAME_TYPE.Coop)
         {
-            RandomEnemySpawn();
-        }
-        else if(allSpawnedCount >= 10 * wave.Value)
-        {
-            if (gameState.Value == GAME_STATE.Defend)
+            if (gameState.Value == GAME_STATE.Defend && allSpawnedCount < 10 * wave.Value)
             {
-                ManageWave();
+                RandomEnemySpawn();
+            }
+            else if (allSpawnedCount >= 10 * wave.Value)
+            {
+                if (gameState.Value == GAME_STATE.Defend)
+                {
+                    ManageWave();
+                }
             }
         }
-        
+        // could this be refactored into one neat conditional? yes. am I going to do that? no. no i am not.
+        else
+        {
+            if (gameState.Value == GAME_STATE.Defend && allSpawnedCount < toSpawnCount.Value)
+            {
+                hasAllSpawned.Value = false;
+            }
+            else if (allSpawnedCount >= 10 * wave.Value)
+            {
+                hasAllSpawned.Value = true;
+                if (gameState.Value == GAME_STATE.Defend)
+                {
+                    ManageWave();
+                }
+            }
+
+            
+        }
 
     }
     
     // allows the server to spawn different towers depending on player input
     public GameObject GetTower(TowerBehaviour.TOWER_TYPE type)
     {
-        Debug.Log($"SERVER: Requesting type {type}. Current Built: {builtItems.Value}/{maxBuiltItems.Value}");
-        if (builtItems.Value >= maxBuiltItems.Value) return null;
+
+        // so enemy player can still spawn enemies when build limit is reached
+        if (builtItems.Value >= maxBuiltItems.Value && type != TowerBehaviour.TOWER_TYPE.Enemy) return null;
+        if(type == TowerBehaviour.TOWER_TYPE.Enemy)
+        {
+            allSpawnedCount += 1;
+        }
 
         foreach (TowerInstance tower in towerPrefabs)
         {
-            Debug.Log($"Checking: {tower.type} against requested: {type}");
             if (tower.type == type)
             { 
                 return tower.prefab;
@@ -146,6 +186,8 @@ public class GameManagement : NetworkBehaviour
         spawnedEnemies.Add(enemyInstance);
         allSpawnedCount += 1;
     }
+
+
 
     // manages prepare timer and switching to defend
     void UpdateTimer()
@@ -194,6 +236,44 @@ public class GameManagement : NetworkBehaviour
         // super cool library function thats safe !!
         spawnedEnemies.RemoveAll(enemy =>
         enemy.GetComponent<NetworkObject>().NetworkObjectId == netID);
+    }
+
+    // play explosion particles everywhere
+    [ClientRpc]
+    public void PlayParticlesClientRpc(Vector3 position)
+    {
+        AudioSource.PlayClipAtPoint(explosionSound, transform.position);
+        Instantiate(particles, position, Quaternion.identity);
+    }
+
+    [ClientRpc]
+    public void PlayExplosionSoundClientRpc(ulong netId, int explodeVoice)
+    {
+        // find enemy 
+        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(netId, out NetworkObject enemy))
+        {
+            AudioSource emitter = enemy.GetComponent<AudioSource>();
+            emitter.clip = ExplodeAudios[explodeVoice];
+            emitter.volume = 0.5f; // voice lines are stupid loud
+            emitter.Play();
+        }
+    }
+
+
+    // methods for getting voice lines
+    public int GetRandomAudioAnimal()
+    {
+        return Random.Range(0, AnimalAudios.Count);
+    }
+
+    public int GetRandomAudioExplode()
+    {
+        return Random.Range(0, ExplodeAudios.Count);
+    }
+
+    public int GetRandomAudioAnticipate()
+    {
+        return Random.Range(0, AnticipateAudios.Count);
     }
 
 }
